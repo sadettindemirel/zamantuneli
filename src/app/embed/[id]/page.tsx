@@ -30,14 +30,17 @@ export default async function EmbedPage({ params }: { params: { id: string } }) 
   // data.data contains the { title: {}, events: [] } object
   const timelineData = data.data;
   
-  // To avoid changing TimelineRenderer too much right now, we can pass events.
-  // Although TimelineRenderer expects just `events` and builds the `title` internally, 
-  // Let's modify it slightly or just pass the events back down to the renderer.
-  // For now, we will just inject the events.
+  // Güvenlik: Eğer 'events' dizisi yoksa veya eski corrupted veri ise, boş gönder.
+  const safeEvents = Array.isArray(timelineData?.events) ? timelineData.events : [];
+  const projectTitle = timelineData?.title?.text?.headline || "Zaman Tüneli";
   
   return (
     <div className="w-screen h-screen m-0 p-0 overflow-hidden bg-background">
-      <TimelineRenderer events={timelineData.events} />
+      <TimelineRenderer 
+        events={safeEvents} 
+        title={projectTitle}
+        description=""
+      />
     </div>
   );
 }

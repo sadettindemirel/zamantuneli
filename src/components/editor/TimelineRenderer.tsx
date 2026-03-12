@@ -8,9 +8,11 @@ declare const TL: any;
 
 interface TimelineProps {
   events: any[];
+  title?: string;
+  description?: string;
 }
 
-export default function TimelineRenderer({ events }: TimelineProps) {
+export default function TimelineRenderer({ events, title = "Zaman Tüneli", description = "" }: TimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const timelineInstance = useRef<any>(null);
@@ -31,11 +33,13 @@ export default function TimelineRenderer({ events }: TimelineProps) {
     const timelineData = {
       title: {
         text: {
-          headline: "Önizleme",
-          text: "Canlı Önizleme Alanı"
+          headline: title,
+          text: description
         }
       },
-      events: validEvents
+      // Kritik Düzeltme: TimelineJS objeyi doğrudan değiştirir (mutate eder). 
+      // Bunun ana React State'imizi (ve dolayısıyla DB kaydımızı) bozmaması için derin kopya alıyoruz.
+      events: JSON.parse(JSON.stringify(validEvents))
     };
 
     const options = {

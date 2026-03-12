@@ -5,14 +5,12 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-6 lg:px-14 h-20 flex items-center border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-50">
-        <Link className="flex items-center justify-center gap-2" href="#">
+        <Link className="flex items-center justify-center gap-2" href="/">
           <Clock className="h-6 w-6 text-primary" />
-          <span className="font-bold text-xl tracking-tight">Timeline<span className="text-primary">Kur</span></span>
+          <span className="font-bold text-xl tracking-tight">Zaman<span className="text-primary"> Tüneli</span></span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#">Özellikler</Link>
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#">Nasıl Çalışır?</Link>
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="#">SSS</Link>
+          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/#features">Özellikler</Link>
         </nav>
       </header>
 
@@ -30,7 +28,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-8">
                 <Link
-                  href="/editor/new"
+                  href="/editor"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Ücretsiz Başla
@@ -80,7 +78,7 @@ export default function Home() {
         <div className="container px-4 flex flex-col items-center gap-4 text-center">
           <div className="flex items-center gap-2 font-semibold">
             <Clock className="h-5 w-5 text-primary" />
-            <span>TimelineKur</span>
+            <span>Zaman Tüneli</span>
           </div>
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Tüm hakları saklıdır. Açık kaynak teknolojilerle geliştirilmiştir.</p>
         </div>
