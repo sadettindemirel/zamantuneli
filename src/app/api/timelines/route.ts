@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 
 // POST: Create a new timeline or Update an existing one
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
     const body = await request.json();
-    const { id, title, events, titleSlide, appearance } = body;
+    const { id, title, events, titleSlide, appearance, isPublish } = body;
 
     // Build timeline data with optional title slide
     let timelineData: any = {
@@ -22,13 +25,18 @@ export async function POST(request: Request) {
        timelineData.appearance = appearance;
     }
 
+    const targetStatus = isPublish ? 'published' : 'draft';
+
     if (id) {
       // Update existing
+      // Only allow update if timeline belongs to user OR if timeline has no user (anonymous creation)
+      // To strictly enforce, we just update where id matches.
       const { data, error } = await supabase
         .from('timelines')
         .update({
           title,
           data: timelineData,
+          status: targetStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -43,7 +51,9 @@ export async function POST(request: Request) {
         .from('timelines')
         .insert([{
           title,
-          data: timelineData
+          data: timelineData,
+          user_id: user?.id || null, // Attach user if logged in
+          status: targetStatus
         }])
         .select()
         .single();

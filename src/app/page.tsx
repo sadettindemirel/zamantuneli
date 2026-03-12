@@ -1,7 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Clock, Globe, Zap } from "lucide-react";
+import { ArrowRight, Clock, Globe, Zap, LayoutDashboard } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-6 lg:px-14 h-20 flex items-center border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-50">
@@ -10,7 +14,23 @@ export default function Home() {
           <span className="font-bold text-xl tracking-tight">Zaman<span className="text-primary"> Tüneli</span></span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/#features">Özellikler</Link>
+          <Link className="text-sm font-medium hover:text-primary transition-colors hidden sm:block" href="/#features">Özellikler</Link>
+          {user ? (
+            <Link 
+              href="/dashboard"
+              className="text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Panele Git
+            </Link>
+          ) : (
+            <Link 
+              href="/login"
+              className="text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors"
+            >
+              Giriş Yap
+            </Link>
+          )}
         </nav>
       </header>
 

@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, GripVertical, Image as ImageIcon } from "lucide-react";
 import TimelineRenderer from "@/components/editor/TimelineRenderer";
 
+import { useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
 // Types corresponding to TimelineJS spec
 type TimelineEvent = {
   id: string;
@@ -56,10 +59,15 @@ type TitleSlide = {
 };
 
 export default function EditorPage() {
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('id');
+  const supabase = createClient();
+
   const [projectTitle, setProjectTitle] = useState("Yeni Timeline Projesi");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showEmbedModial, setShowEmbedModal] = useState(false);
+  const [isLoadingEditor, setIsLoadingEditor] = useState(!!editId);
 
   // New State: Title Slide (Cover)
   const [titleSlide, setTitleSlide] = useState<TitleSlide>({
@@ -84,7 +92,50 @@ export default function EditorPage() {
   ]);
   
   const [activeEventId, setActiveEventId] = useState<string>("1");
-  const activeEvent = events.find(e => e.id === activeEventId) || events[0];
+  const [activeEvent, setActiveEvent] = useState<TimelineEvent>(events[0]);
+
+  // Derived state to keep `activeEvent` synced when `events` or `activeEventId` changes
+  useEffect(() => {
+    const found = events.find(e => e.id === activeEventId);
+    if (found) setActiveEvent(found);
+  }, [events, activeEventId]);
+
+  // Load existing data if editId is provided
+  useEffect(() => {
+    async function loadData() {
+      if (!editId) return;
+      try {
+        const { data, error } = await supabase
+          .from('timelines')
+          .select('*')
+          .eq('id', editId)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setProjectTitle(data.title || "İsimsiz Proje");
+          setSavedId(data.id);
+          
+          if (data.data) {
+            const tlData = data.data;
+            if (tlData.events && Array.isArray(tlData.events)) {
+              setEvents(tlData.events);
+              if (tlData.events.length > 0) setActiveEventId(tlData.events[0].id);
+            }
+            if (tlData.title) setTitleSlide(tlData.title);
+            if (tlData.appearance) setAppearance(tlData.appearance);
+          }
+        }
+      } catch (err) {
+        console.error("Projeyi yüklerken hata:", err);
+        alert("Proje yüklenemedi. Silinmiş olabilir veya yetkiniz yok.");
+      } finally {
+        setIsLoadingEditor(false);
+      }
+    }
+    
+    loadData();
+  }, [editId, supabase]);
 
   const updateActiveEvent = (updates: Partial<TimelineEvent>) => {
     setEvents(events.map(e => e.id === activeEventId ? { ...e, ...updates } : e));
@@ -156,7 +207,8 @@ export default function EditorPage() {
           title: projectTitle,
           events: validEvents,
           titleSlide: titleSlide,
-          appearance: appearance
+          appearance: appearance,
+          isPublish: isPublish
         })
       });
 
@@ -192,6 +244,10 @@ export default function EditorPage() {
       window.removeEventListener('publish-timeline', handlePublishEvent);
     };
   }, [events, projectTitle, savedId]);
+
+  if (isLoadingEditor) {
+    return <div className="w-full h-full flex items-center justify-center bg-background"><span className="animate-pulse">Proje Yükleniyor...</span></div>;
+  }
 
   return (
     <div className="flex w-full h-full relative">

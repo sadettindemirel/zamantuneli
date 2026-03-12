@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Save, Share2, Eye } from "lucide-react";
+import { Suspense } from 'react';
 
 export default function EditorLayout({
   children,
@@ -55,7 +56,9 @@ export default function EditorLayout({
       </header>
       
       <main className="flex-1 flex overflow-hidden">
-        {children}
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 bg-background">Yükleniyor...</div>}>
+          {children}
+        </Suspense>
       </main>
     </div>
   );
