@@ -2,8 +2,8 @@ import TimelineRenderer from "@/components/editor/TimelineRenderer";
 import { notFound } from "next/navigation";
 
 // Sunucu tarafında (Server Component) Supabase verisini çekeceğiz.
-export default async function EmbedPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function EmbedPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   // Internal API call to our own route (which uses Supabase)
   // Note: we can't easily fetch absolute local URLs in a server component during build time without knowing the host.
