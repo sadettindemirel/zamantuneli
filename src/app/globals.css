@@ -28,3 +28,11 @@
     color: var(--foreground);
   }
 }
+
+/* Hide TimelineJS Watermark/Branding */
+.tl-attribution {
+  display: none !important;
+}
+.tl-watermark {
+  display: none !important;
+}
