@@ -5,18 +5,22 @@ import { supabase } from '@/lib/supabase';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, title, events } = body;
+    const { id, title, events, titleSlide, appearance } = body;
 
-    // TimelineJS expects a specific format
-    const timelineData = {
-      title: {
-        text: {
-          headline: title,
-          text: ""
-        }
-      },
+    // Build timeline data with optional title slide
+    let timelineData: any = {
       events: events
     };
+
+    if (titleSlide) {
+       timelineData.title = titleSlide;
+    } else {
+       timelineData.title = { text: { headline: title, text: "" } };
+    }
+
+    if (appearance) {
+       timelineData.appearance = appearance;
+    }
 
     if (id) {
       // Update existing

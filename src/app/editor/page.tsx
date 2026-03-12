@@ -26,6 +26,33 @@ type TimelineEvent = {
     caption?: string;
     credit?: string;
   };
+  background?: {
+    color?: string;
+    url?: string;
+  };
+};
+
+// Global Appearance Settings
+type AppearanceSettings = {
+  font: string; // e.g., 'default', 'playfair-fauna', 'pt'
+  theme: string; // optional for future use
+};
+
+// Title Slide Data (TimelineJS native title implementation)
+type TitleSlide = {
+  text: {
+    headline: string;
+    text: string;
+  };
+  media?: {
+    url: string;
+    caption?: string;
+    credit?: string;
+  };
+  background?: {
+    color?: string;
+    url?: string;
+  };
 };
 
 export default function EditorPage() {
@@ -33,6 +60,20 @@ export default function EditorPage() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showEmbedModial, setShowEmbedModal] = useState(false);
+
+  // New State: Title Slide (Cover)
+  const [titleSlide, setTitleSlide] = useState<TitleSlide>({
+    text: { headline: "Yeni Timeline Projesi", text: "Projenizin açıklama metnini buraya yazın." }
+  });
+
+  // New State: Global Appearance
+  const [appearance, setAppearance] = useState<AppearanceSettings>({
+    font: "default",
+    theme: "default"
+  });
+
+  // Editor mode: "title" vs "event"
+  const [editorMode, setEditorMode] = useState<"title" | "event">("title");
 
   const [events, setEvents] = useState<TimelineEvent[]>([
     {
@@ -60,6 +101,21 @@ export default function EditorPage() {
 
   const updateStartDate = (field: 'year' | 'month' | 'day', value: string) => {
     updateActiveEvent({ start_date: { ...activeEvent.start_date, [field]: value } });
+  };
+
+  const updateBackground = (field: 'color' | 'url', value: string) => {
+    const currentBg = activeEvent.background || { color: '', url: '' };
+    updateActiveEvent({ background: { ...currentBg, [field]: value } });
+  };
+
+  const updateTitleSlide = (category: 'text' | 'media' | 'background', field: string, value: string) => {
+    setTitleSlide(prev => {
+      const currentCategory = prev[category] || {};
+      return {
+        ...prev,
+        [category]: { ...currentCategory, [field]: value }
+      };
+    });
   };
 
   const addEvent = () => {
@@ -98,7 +154,9 @@ export default function EditorPage() {
         body: JSON.stringify({
           id: savedId, 
           title: projectTitle,
-          events: validEvents
+          events: validEvents,
+          titleSlide: titleSlide,
+          appearance: appearance
         })
       });
 
@@ -168,24 +226,41 @@ export default function EditorPage() {
 
       {/* LEFT PANEL: Navigator */}
       <div className="w-64 border-r border-border bg-muted/10 flex flex-col h-full shrink-0">
-        <div className="p-4 border-b border-border flex justify-between items-center">
-          <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Olaylarınız</h2>
-          <button 
-            onClick={addEvent}
-            className="p-1 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-            title="Yeni Olay Ekle"
+        <div className="p-4 border-b border-border flex flex-col gap-3">
+          <div className="flex justify-between items-center">
+            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">İçerik</h2>
+            <button 
+              onClick={addEvent}
+              className="p-1 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+              title="Yeni Olay Ekle"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div 
+            onClick={() => setEditorMode("title")}
+            className={`p-3 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-sm font-medium ${
+              editorMode === "title" 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-background hover:bg-muted text-foreground border border-border'
+            }`}
           >
-            <Plus className="h-4 w-4" />
-          </button>
+            <ImageIcon className="h-4 w-4" />
+            Kapak (Title Slide)
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {events.map((ev, idx) => (
             <div 
               key={ev.id}
-              onClick={() => setActiveEventId(ev.id)}
+              onClick={() => {
+                setActiveEventId(ev.id);
+                setEditorMode("event");
+              }}
               className={`p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-colors group ${
-                activeEventId === ev.id 
+                editorMode === "event" && activeEventId === ev.id 
                   ? 'bg-primary/10 border border-primary/20 text-foreground' 
                   : 'hover:bg-muted text-muted-foreground border border-transparent'
               }`}
@@ -210,81 +285,82 @@ export default function EditorPage() {
       <div className="w-[450px] border-r border-border bg-background flex flex-col h-full shrink-0 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-10">
         <div className="p-6 border-b border-border flex-1 overflow-y-auto space-y-8">
           
-          {/* Timeline Date Section */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <span className="w-6 h-px bg-border inline-block"></span>
-              Zaman
-              <span className="flex-1 h-px bg-border inline-block"></span>
-            </h3>
-            
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground pl-1">Yıl</label>
-                <input 
-                  type="number" 
-                  value={activeEvent.start_date.year || ''}
-                  onChange={(e) => updateStartDate('year', e.target.value)}
-                  className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="Ör: 2024"
-                />
+          {editorMode === "event" && (
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <span className="w-6 h-px bg-border inline-block"></span>
+                Zaman
+                <span className="flex-1 h-px bg-border inline-block"></span>
+              </h3>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground pl-1">Yıl</label>
+                  <input 
+                    type="number" 
+                    value={activeEvent.start_date.year || ''}
+                    onChange={(e) => updateStartDate('year', e.target.value)}
+                    className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    placeholder="Ör: 2024"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground pl-1">Ay</label>
+                  <input 
+                    type="number" min="1" max="12"
+                    value={activeEvent.start_date.month || ''}
+                    onChange={(e) => updateStartDate('month', e.target.value)}
+                    className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                    placeholder="Ör: 05"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground pl-1">Gün</label>
+                  <input 
+                    type="number" min="1" max="31"
+                    value={activeEvent.start_date.day || ''}
+                    onChange={(e) => updateStartDate('day', e.target.value)}
+                    className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                    placeholder="Ör: 15"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground pl-1">Ay</label>
-                <input 
-                  type="number" min="1" max="12"
-                  value={activeEvent.start_date.month || ''}
-                  onChange={(e) => updateStartDate('month', e.target.value)}
-                  className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  placeholder="Ör: 05"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground pl-1">Gün</label>
-                <input 
-                  type="number" min="1" max="31"
-                  value={activeEvent.start_date.day || ''}
-                  onChange={(e) => updateStartDate('day', e.target.value)}
-                  className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  placeholder="Ör: 15"
-                />
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
 
-          {/* Text Section */}
+          {/* Text Section (Dynamic based on selected mode) */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
               <span className="w-6 h-px bg-border inline-block"></span>
-              İçerik
+              {editorMode === "title" ? "Kapak İçeriği" : "İçerik"}
               <span className="flex-1 h-px bg-border inline-block"></span>
             </h3>
             
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground pl-1">Başlık</label>
+                <label className="text-xs font-medium text-muted-foreground pl-1">Ana Başlık</label>
                 <input 
                   type="text" 
-                  value={activeEvent.text?.headline || ''}
-                  onChange={(e) => updateText('headline', e.target.value)}
+                  value={editorMode === "title" ? (titleSlide.text?.headline || '') : (activeEvent.text?.headline || '')}
+                  onChange={(e) => editorMode === "title" ? updateTitleSlide('text', 'headline', e.target.value) : updateText('headline', e.target.value)}
                   className="w-full p-2.5 bg-muted/50 border border-border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  placeholder="Olayın başlığı..."
+                  placeholder="Başlık girin..."
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground pl-1">Açıklama (HTML destekiği mevcut)</label>
+                <label className="text-xs font-medium text-muted-foreground pl-1">Açıklama (HTML destekli)</label>
                 <textarea 
-                  value={activeEvent.text?.text || ''}
-                  onChange={(e) => updateText('text', e.target.value)}
+                  value={editorMode === "title" ? (titleSlide.text?.text || '') : (activeEvent.text?.text || '')}
+                  onChange={(e) => editorMode === "title" ? updateTitleSlide('text', 'text', e.target.value) : updateText('text', e.target.value)}
                   className="w-full p-3 bg-muted/50 border border-border rounded-md text-sm min-h-[160px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  placeholder="Olayı detaylandırın..."
+                  placeholder="Detaylandırın..."
                 />
               </div>
             </div>
           </section>
 
           {/* Media Section */}
-          <section className="space-y-4 pb-8">
+          <section className="space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
               <span className="w-6 h-px bg-border inline-block"></span>
               Medya (Görsel / Video)
@@ -298,8 +374,8 @@ export default function EditorPage() {
                 </label>
                 <input 
                   type="url" 
-                  value={activeEvent.media?.url || ''}
-                  onChange={(e) => updateMedia('url', e.target.value)}
+                  value={editorMode === "title" ? (titleSlide.media?.url || '') : (activeEvent.media?.url || '')}
+                  onChange={(e) => editorMode === "title" ? updateTitleSlide('media', 'url', e.target.value) : updateMedia('url', e.target.value)}
                   className="w-full p-2.5 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                   placeholder="https://..."
                 />
@@ -310,8 +386,8 @@ export default function EditorPage() {
                   <label className="text-xs font-medium text-muted-foreground pl-1">Medya Altyazısı</label>
                   <input 
                     type="text" 
-                    value={activeEvent.media?.caption || ''}
-                    onChange={(e) => updateMedia('caption', e.target.value)}
+                    value={editorMode === "title" ? (titleSlide.media?.caption || '') : (activeEvent.media?.caption || '')}
+                    onChange={(e) => editorMode === "title" ? updateTitleSlide('media', 'caption', e.target.value) : updateMedia('caption', e.target.value)}
                     className="w-full p-2.5 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                     placeholder="Fotoğraf altı metni..."
                   />
@@ -320,8 +396,8 @@ export default function EditorPage() {
                   <label className="text-xs font-medium text-muted-foreground pl-1">Kaynak / Kredi</label>
                   <input 
                     type="text" 
-                    value={activeEvent.media?.credit || ''}
-                    onChange={(e) => updateMedia('credit', e.target.value)}
+                    value={editorMode === "title" ? (titleSlide.media?.credit || '') : (activeEvent.media?.credit || '')}
+                    onChange={(e) => editorMode === "title" ? updateTitleSlide('media', 'credit', e.target.value) : updateMedia('credit', e.target.value)}
                     className="w-full p-2.5 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                     placeholder="Fotoğraf: Ajans adı..."
                   />
@@ -330,12 +406,74 @@ export default function EditorPage() {
             </div>
           </section>
 
+          {/* Background Section */}
+          <section className="space-y-4 pb-8">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <span className="w-6 h-px bg-border inline-block"></span>
+              Olay Arkaplanı Görünümü
+              <span className="flex-1 h-px bg-border inline-block"></span>
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground pl-1">Arkaplan Rengi (Örn: #ff0000, red)</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="color" 
+                    value={editorMode === "title" 
+                      ? (titleSlide.background?.color?.match(/^#[0-9a-f]{6}$/i) ? titleSlide.background.color : '#ffffff') 
+                      : (activeEvent.background?.color?.match(/^#[0-9a-f]{6}$/i) ? activeEvent.background.color : '#ffffff')
+                    }
+                    onChange={(e) => editorMode === "title" ? updateTitleSlide('background', 'color', e.target.value) : updateBackground('color', e.target.value)}
+                    className="h-10 w-10 p-1 bg-background border border-border rounded-md cursor-pointer shrink-0"
+                  />
+                  <input 
+                    type="text" 
+                    value={editorMode === "title" ? (titleSlide.background?.color || '') : (activeEvent.background?.color || '')}
+                    onChange={(e) => editorMode === "title" ? updateTitleSlide('background', 'color', e.target.value) : updateBackground('color', e.target.value)}
+                    className="w-full p-2.5 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono"
+                    placeholder="#1e293b"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground pl-1">Veya Arkaplan Görseli URL'si</label>
+                <input 
+                  type="url" 
+                  value={editorMode === "title" ? (titleSlide.background?.url || '') : (activeEvent.background?.url || '')}
+                  onChange={(e) => editorMode === "title" ? updateTitleSlide('background', 'url', e.target.value) : updateBackground('url', e.target.value)}
+                  className="w-full p-2.5 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+            {/* Not: Opacity / Overlay efekti için CSS inject etme yöntemini TimelineRenderer'da değerlendireceğiz */}
+          </section>
+
         </div>
       </div>
 
       {/* RIGHT PANEL: Live Preview Area */}
       <div className="flex-1 bg-muted/20 relative flex flex-col max-h-full overflow-hidden">
-        <TimelineRenderer events={events} />
+        {/* Global Settings Toolbar */}
+        <div className="absolute top-4 right-4 z-20 bg-background/90 backdrop-blur border border-border rounded-lg shadow-sm p-2 flex items-center gap-3">
+          <label className="text-xs font-medium text-muted-foreground">Yazı Tipi:</label>
+          <select 
+            value={appearance.font}
+            onChange={(e) => setAppearance({ ...appearance, font: e.target.value })}
+            className="text-sm bg-transparent border-none focus:ring-0 cursor-pointer font-medium"
+          >
+            <option value="default">Varsayılan (Helvetica)</option>
+            <option value="playfair-fauna">Playfair & Fauna One</option>
+            <option value="lato-merriweather">Lato & Merriweather</option>
+            <option value="abril-droidsans">Abril Fatface & Droid</option>
+            <option value="georgia-helvetica">Georgia & Helvetica</option>
+            <option value="pt">PT Sans & PT Serif</option>
+          </select>
+        </div>
+
+        <TimelineRenderer events={events} titleSlide={titleSlide} appearance={appearance} />
       </div>
 
     </div>

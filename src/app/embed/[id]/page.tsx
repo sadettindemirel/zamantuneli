@@ -32,14 +32,15 @@ export default async function EmbedPage({ params }: { params: Promise<{ id: stri
   
   // Güvenlik: Eğer 'events' dizisi yoksa veya eski corrupted veri ise, boş gönder.
   const safeEvents = Array.isArray(timelineData?.events) ? timelineData.events : [];
-  const projectTitle = timelineData?.title?.text?.headline || "Zaman Tüneli";
+  const titleSlideData = timelineData?.title || null;
+  const appearanceData = timelineData?.appearance || null;
   
   return (
     <div className="w-screen h-screen m-0 p-0 overflow-hidden bg-background">
       <TimelineRenderer 
         events={safeEvents} 
-        title={projectTitle}
-        description=""
+        titleSlide={titleSlideData}
+        appearance={appearanceData}
       />
     </div>
   );

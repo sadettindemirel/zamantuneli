@@ -8,11 +8,11 @@ declare const TL: any;
 
 interface TimelineProps {
   events: any[];
-  title?: string;
-  description?: string;
+  titleSlide?: any;
+  appearance?: any;
 }
 
-export default function TimelineRenderer({ events, title = "Zaman Tüneli", description = "" }: TimelineProps) {
+export default function TimelineRenderer({ events, titleSlide, appearance }: TimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const timelineInstance = useRef<any>(null);
@@ -30,24 +30,38 @@ export default function TimelineRenderer({ events, title = "Zaman Tüneli", desc
 
     if (validEvents.length === 0) return;
 
-    const timelineData = {
-      title: {
-        text: {
-          headline: title,
-          text: description
-        }
-      },
-      // Kritik Düzeltme: TimelineJS objeyi doğrudan değiştirir (mutate eder). 
-      // Bunun ana React State'imizi (ve dolayısıyla DB kaydımızı) bozmaması için derin kopya alıyoruz.
+    // Start building timelineData
+    const timelineData: any = {
       events: JSON.parse(JSON.stringify(validEvents))
     };
+    
+    // Inject custom Title Slide if provided
+    if (titleSlide?.text?.headline) {
+      timelineData.title = {
+        text: titleSlide.text,
+        media: titleSlide.media,
+        background: titleSlide.background
+      };
+    } else {
+      // Fallback
+      timelineData.title = {
+        text: {
+          headline: "Zaman Tüneli",
+          text: ""
+        }
+      };
+    }
 
-    const options = {
+    const options: any = {
       language: "tr",
       hash_bookmark: false,
       initial_zoom: 2,
       debug: false
     };
+
+    if (appearance?.font && appearance.font !== 'default') {
+      options.font = appearance.font;
+    }
 
     try {
       // Clean up previous instance conceptually (TimelineJS doesn't have a clean destroy method)
